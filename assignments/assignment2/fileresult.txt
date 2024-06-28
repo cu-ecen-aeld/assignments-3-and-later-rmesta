@@ -1,0 +1,8 @@
+Linux Ubuntu 5.15.0-113-generic #123~20.04.1-Ubuntu SMP Wed Jun 12 17:33:13 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+Fri 28 Jun 2024 05:04:21 PM CDT
+/usr/bin/rm -f writer writer.o
+aarch64-none-linux-gnu-gcc  -c -o writer.o writer.c
+aarch64-none-linux-gnu-gcc -g -o writer writer.o
+writer.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped
+writer:   ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0, with debug_info, not stripped
+Fri 28 Jun 2024 05:04:21 PM CDT
