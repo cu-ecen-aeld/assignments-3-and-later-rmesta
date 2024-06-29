@@ -10,13 +10,28 @@
 bool do_system(const char *cmd)
 {
 
-/*
- * TODO  add your code here
- *  Call the system() function with the command set in the cmd
- *   and return a boolean true if the system() call completed with success
- *   or false() if it returned a failure
-*/
+    /*
+     * Rick Mesta
+     * 06/29/2024
+     *
+     * University of Colorado at Boulder
+     * ECEN 5713: Advanced Embedded Linux Development
+     * Assignment 3 (Part 1)
+     */
+    int rv = 0;
 
+    errno = 0;
+    if ((rv = system(cmd)) < 0) {
+        fprintf(stderr, "%s: %s\n", __func__, strerror(errno));
+        return false;
+    }
+    else if (rv == 127) {
+        fprintf(stderr, "%s: Shell could not be executed in child\n", __func__);
+        return false;
+    }
+#ifdef  DEBUG
+    fprintf(stdout, "%s: \"%s\" returned with termination status = %i\n", __func__, cmd, rv);
+#endif
     return true;
 }
 
@@ -45,22 +60,85 @@ bool do_exec(int count, ...)
         command[i] = va_arg(args, char *);
     }
     command[count] = NULL;
-    // this line is to avoid a compile warning before your implementation is complete
-    // and may be removed
-    command[count] = command[count];
 
-/*
- * TODO:
- *   Execute a system command by calling fork, execv(),
- *   and wait instead of system (see LSP page 161).
- *   Use the command[0] as the full path to the command to execute
- *   (first argument to execv), and use the remaining arguments
- *   as second argument to the execv() command.
- *
-*/
+    /*
+     * Rick Mesta
+     * 06/29/2024
+     *
+     * University of Colorado at Boulder
+     * ECEN 5713: Advanced Embedded Linux Development
+     * Assignment 3 (Part 1)
+     */
+
+    /*
+     * Check all args to execv(). Any
+     * non-flags MUST be absolute paths
+     */
+#ifdef DEBUG
+    fprintf(stderr, "%s: Verifying arguments...\n", __func__);
+#endif
+    for (i = 0; i < count; i++) {
+        char *p = NULL;
+
+#ifdef DEBUG
+        fprintf(stderr, "\t%s... ", command[i]);
+#endif
+        if ((p = strstr(command[i], "-"))) {
+#ifdef DEBUG
+            fprintf(stderr, " skipped\n");
+#endif
+            continue;
+        }
+        else if ((p = strstr(command[i], "/")) == NULL) {
+#ifdef DEBUG
+            fprintf(stderr, "is not an absolute path <FALSE>\n");
+#endif
+            return false;
+        }
+#ifdef DEBUG
+        fprintf(stderr, "<OK>\n");
+#endif
+    }
+
+    /*
+     * If we're here, we know we have
+     * secure (full path) arguments.
+     */
+    pid_t   pid;
+
+    errno = 0;
+    if ((pid = fork()) < 0) {
+        fprintf(stderr, "%s: %s\n", __func__, strerror(errno));
+        return false;
+    }
+    else if (pid == 0) {
+        // child
+#ifdef DEBUG
+        int          k;
+
+        fprintf(stderr, "%s: [Child] Arguments to execv()\n", __func__);
+        for (k = 0; k < count; k++)
+            fprintf(stderr, "\t%s\n", command[k]);
+#endif
+        execv(command[0], command+1);
+
+        fprintf(stderr, "%s: [Child] Shouldn't have gotten here\n", __func__);
+        exit(-1);
+    }
+
+    // parent
+    int status;
+
+    errno = 0;
+    if (waitpid(pid, &status, 0) < 0) {
+        fprintf(stderr, "%s: [Parent] %s\n", __func__, strerror(errno));
+        return -1;
+    }
+#ifdef  DEBUG
+    fprintf(stderr, "%s: [Parent] notified of child (exit)\n", __func__);
+#endif
 
     va_end(args);
-
     return true;
 }
 
