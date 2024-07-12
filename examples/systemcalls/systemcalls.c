@@ -29,11 +29,9 @@ bool do_system(const char *cmd)
         fprintf(stderr, "%s: Shell could not be executed in child\n", __func__);
         return false;
     }
-#ifdef  DEBUG
-    fprintf(stdout, "%s: \"%s\" returned with termination status = %i\n", __func__, cmd, rv);
-#endif
     return true;
 }
+
 
 /**
 * @param count -The numbers of variables passed to the function. The variables are command to execute.
@@ -51,92 +49,88 @@ bool do_system(const char *cmd)
 
 bool do_exec(int count, ...)
 {
-    va_list args;
+    va_list     args;
     va_start(args, count);
-    char * command[count+1];
-    int i;
-    for(i=0; i<count; i++)
-    {
+
+    char        *command[count+1];
+    int          i;
+
+    for (i = 0; i < count; i++) {
         command[i] = va_arg(args, char *);
     }
     command[count] = NULL;
 
     /*
      * Rick Mesta
-     * 06/29/2024
+     * 07/12/2024
      *
      * University of Colorado at Boulder
      * ECEN 5713: Advanced Embedded Linux Development
      * Assignment 3 (Part 1)
      */
-
-    /*
-     * Check all args to execv(). Any
-     * non-flags MUST be absolute paths
-     */
-#ifdef DEBUG
-    fprintf(stderr, "%s: Verifying arguments...\n", __func__);
-#endif
-    for (i = 0; i < count; i++) {
-        char *p = NULL;
-
-#ifdef DEBUG
-        fprintf(stderr, "\t%s... ", command[i]);
-#endif
-        if ((p = strstr(command[i], "-"))) {
-#ifdef DEBUG
-            fprintf(stderr, " skipped\n");
-#endif
-            continue;
-        }
-        else if ((p = strstr(command[i], "/")) == NULL) {
-#ifdef DEBUG
-            fprintf(stderr, "is not an absolute path <FALSE>\n");
-#endif
-            return false;
-        }
-#ifdef DEBUG
-        fprintf(stderr, "<OK>\n");
-#endif
-    }
-
-    /*
-     * If we're here, we know we have
-     * secure (full path) arguments.
-     */
     pid_t   pid;
 
     errno = 0;
-    if ((pid = fork()) < 0) {
+    switch ((pid = fork())) {
+    case -1:
         fprintf(stderr, "%s: %s\n", __func__, strerror(errno));
         return false;
+
+    case 0:
+        {   // Child
+
+            int         rv = 0;
+
+            errno = 0;
+            if ((rv = execv(command[0], command)) < 0) {
+                fprintf(stderr, "*** ERROR: exec failed with return value %d\n", rv);
+
+                switch (errno) {
+                case ENOENT:
+                    fprintf(stderr, "execv: echo error: %s\n", strerror(errno));
+                    exit(1);
+
+                default:
+                    fprintf(stderr, "execv: [other error] %s\n", strerror(errno));
+                    exit(2);
+                }
+            }
+            fprintf(stdout, "[Child] Command %s returned non zero exit code %d\n",
+                    command[0], rv);
+            exit(0);
+        }
+
+    default:
+        {   // Parent
+
+            int     status;
+            pid_t   kpid = 0;
+
+            errno = 0;
+            if ((kpid = waitpid(pid, &status, 0)) < 0) {
+                fprintf(stderr, "%s: [Parent] %s\n", __func__, strerror(errno));
+                return false;
+            }
+            else if (kpid == pid) {
+                if (WIFEXITED(status)) {
+                    int es = WEXITSTATUS(status);
+
+                    switch (es) {
+                    case 1:
+                        fprintf(stdout,
+                                "Command %s returned non zero exit code %d\n",
+                                command[0], es);
+                        return false;
+
+                    default:
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+        break;
     }
-    else if (pid == 0) {
-        // child
-#ifdef DEBUG
-        int          k;
-
-        fprintf(stderr, "%s: [Child] Arguments to execv()\n", __func__);
-        for (k = 0; k < count; k++)
-            fprintf(stderr, "\t%s\n", command[k]);
-#endif
-        execv(command[0], command+1);
-
-        fprintf(stderr, "%s: [Child] Shouldn't have gotten here\n", __func__);
-        exit(-1);
-    }
-
-    // parent
-    int status;
-
-    errno = 0;
-    if (waitpid(pid, &status, 0) < 0) {
-        fprintf(stderr, "%s: [Parent] %s\n", __func__, strerror(errno));
-        return -1;
-    }
-#ifdef  DEBUG
-    fprintf(stderr, "%s: [Parent] notified of child (exit)\n", __func__);
-#endif
 
     va_end(args);
     return true;
@@ -149,19 +143,17 @@ bool do_exec(int count, ...)
 */
 bool do_exec_redirect(const char *outputfile, int count, ...)
 {
-    va_list args;
+    va_list      args;
     va_start(args, count);
-    char * command[count+1];
-    int i;
-    for(i=0; i<count; i++)
-    {
+
+    char        *command[count+1];
+    int          i;
+
+    for (i = 0; i < count; i++) {
         command[i] = va_arg(args, char *);
     }
     command[count] = NULL;
-    // this line is to avoid a compile warning before your implementation is complete
-    // and may be removed
     command[count] = command[count];
-
 
 /*
  * TODO
@@ -169,9 +161,97 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   redirect standard out to a file specified by outputfile.
  *   The rest of the behaviour is same as do_exec()
  *
-*/
+ */
+
+    /*
+     * Rick Mesta
+     * 07/12/2024
+     *
+     * University of Colorado at Boulder
+     * ECEN 5713: Advanced Embedded Linux Development
+     * Assignment 3 (Part 1)
+     */
+    pid_t   pid;
+    int     fd = 0;
+
+    errno = 0;
+    if ((fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644)) < 0) {
+        fprintf(stderr, "%s: (open): %s\n", __func__, strerror(errno));
+        return false;
+    }
+
+    errno = 0;
+    switch ((pid = fork())) {
+    case -1:
+        fprintf(stderr, "%s: %s\n", __func__, strerror(errno));
+        return false;
+
+    case 0:
+        {   // Child
+
+            int     rv = 0;
+            int     nfd = 0;
+
+            errno = 0;
+            if ((nfd = dup2(fd, 1)) < 0) {  // stdin = 0, stdout = 1, stderr = 2
+                fprintf(stderr, "%s: (dup2): %s\n", __func__, strerror(errno));
+                return false;
+            }
+            close(fd);
+
+            errno = 0;
+            if ((rv = execv(command[0], command)) < 0) {
+                dprintf(nfd, "*** ERROR: exec failed with return value %d\n", rv);
+
+                switch (errno) {
+                case ENOENT:
+                    dprintf(nfd, "execv: echo error: %s\n", strerror(errno));
+                    exit(1);
+
+                default:
+                    dprintf(nfd, "execv: [other error] %s\n", strerror(errno));
+                    exit(2);
+                }
+            }
+            dprintf(nfd, "[Child] Command %s returned non zero exit code %d\n",
+                    command[0], rv);
+            exit(0);
+        }
+
+    default:
+        {   // Parent
+
+            int     status;
+            pid_t   kpid = 0;
+
+            close(fd);
+
+            errno = 0;
+            if ((kpid = waitpid(pid, &status, 0)) < 0) {
+                fprintf(stderr, "%s: [Parent] %s\n", __func__, strerror(errno));
+                return false;
+            }
+            else if (kpid == pid) {
+                if (WIFEXITED(status)) {
+                    int es = WEXITSTATUS(status);
+
+                    switch (es) {
+                    case 1:
+                        fprintf(stdout,
+                                "Command %s returned non zero exit code %d\n",
+                                command[0], es);
+                        return false;
+
+                    default:
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+        break;
+    }
 
     va_end(args);
-
     return true;
 }
