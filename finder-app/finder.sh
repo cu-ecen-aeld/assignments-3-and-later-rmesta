@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Rick Mesta
-# 06/24/2024
+# 07/17/2024
 #
 # University of Colorado at Boulder
 # ECEN 5713: Advanced Embedded Linux Development
-# Assignment 1
+# Assignment 3 Part 2
 #
 
 usage ()
@@ -30,7 +30,7 @@ fcnt=0
 lmp=0
 for f in ${FILES}; do
     fcnt=$((fcnt+1))
-    cnt=$(egrep --count ${searchstr} ${f})
+    cnt=$(grep -c ${searchstr} ${f})
     if [[ ${cnt} -gt 0 ]]; then
         lmp=$((lmp + cnt))
         cnt=0
