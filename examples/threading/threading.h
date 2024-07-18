@@ -1,5 +1,16 @@
+/*
+ * Rick Mesta
+ * 07/18/2024
+ *
+ * University of Colorado at Boulder
+ * ECEN 5713: Advanced Embedded Linux Development
+ * Assignment 4 (Part 1)
+ */
 #include <stdbool.h>
 #include <pthread.h>
+#include <errno.h>
+#include <string.h>
+#include <strings.h>
 
 /**
  * This structure should be dynamically allocated and passed as
@@ -14,6 +25,10 @@ struct thread_data{
      * between the start_thread_obtaining_mutex function and
      * your thread implementation.
      */
+    pthread_t       *tp;
+    pthread_mutex_t *mtx;
+    int              ms_wait;
+    int              ms_rele;
 
     /**
      * Set to true if the thread completed with success, false
