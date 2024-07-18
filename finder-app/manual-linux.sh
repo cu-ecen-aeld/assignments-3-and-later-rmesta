@@ -124,6 +124,9 @@ ALIB=$(${CROSS_COMPILE}readelf -a bin/busybox   |\
     awk '{print $NF}'                           |\
     sed -e 's/\(.*\)]/\1/')
 
+SYSROOT=$(aarch64-none-linux-gnu-gcc -print-sysroot)
+echo -e "SYSROOT = \033[0;92m${SYSROOT}\033[0m"
+
 echo "Copying ${SYSROOT}${ALIB} to ${OUTDIR}/rootfs/lib64"
 sudo cp -p "${SYSROOT}${ALIB}" "${OUTDIR}/rootfs/lib64/."
 sudo cp -p "${SYSROOT}${ALIB}" "${OUTDIR}/rootfs/lib/."
