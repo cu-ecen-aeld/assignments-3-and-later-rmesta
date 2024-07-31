@@ -1,27 +1,21 @@
 #
 # Rick Mesta
-# 06/28/2024
+# 07/31/2024
 #
 # University of Colorado at Boulder
 # ECEN 5713: Advanced Embedded Linux Development
-# Assignment 2
+# Assignment 4 (Part 2)
 #
-GCC=gcc
-XCC=$(CROSS_COMPILE)$(GCC)
 RM=/usr/bin/rm
-CFLAGS=-c
-LDFLAGS=-g
-DEFINES=
 
 TGT=writer
 SRC=$(TGT).c
 OBJ=$(SRC:%.c=%.o)
 
-.c.o:
-	$(XCC) $(DEFINES) $(CFLAGS) -o $@ $<
+all: $(TGT)
 
-$(TGT):	$(OBJ)
-	$(XCC) $(LDFLAGS) -o $@ $?
+$(TGT): $(OBJ)
+	$(CC) $(CFLAGS) $(INCLUDES) $(OBJ) -o $@ $(LDFLAGS)
 
 clean:
 	$(RM) -f $(TGT) $(OBJ)
