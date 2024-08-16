@@ -1,10 +1,10 @@
 /*
  * Rick Mesta
- * 08/13/2024
+ * 08/15/2024
  *
  * University of Colorado at Boulder
  * ECEN 5713: Advanced Embedded Linux Development
- * Assignment 5 (Part 1)
+ * Assignment 5 (Part 2)
  */
 #include "aesdsocket.h"
 
@@ -219,7 +219,7 @@ main(int argc, char **argv)
      * daemonizing
      */
     if (dflag) {
-        fprintf(stdout, "\033[1;93mDaemon mode detected\033[0m\n");
+        fprintf(stdout, "\033[1;93mStarting aesdsocket\033[0m\n");
 
         errno = 0;
         if (daemon(0, 0) < 0)

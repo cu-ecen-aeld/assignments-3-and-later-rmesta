@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# Rick Mesta
+# 08/15/2024
+#
+# University of Colorado at Boulder
+# ECEN 5713: Advanced Embedded Linux Development
+# Assignment 5 (Part 2)
+#
+# aesdsocket init.d script
+#
+DPATH="/usr/bin/aesdsocket"
+NAME=$(basename ${DPATH})
+FILE="/var/tmp/aesdsocketdata"
+
+start() {
+    start-stop-daemon --start --name ${NAME} --startas ${DPATH} -- -d
+}
+
+stop() {
+    start-stop-daemon --stop --name ${NAME} --oknodo --signal TERM --retry 5
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+
+    stop)
+        stop
+        ;;
+
+    restart)
+        stop
+        start
+        ;;
+
+    status)
+        RES=$(ps auxw | grep ${NAME} | grep -Ev '(grep|start|stop|status)')
+        [ $? -eq 0 ] && echo ${RES} && ls -la ${FILE}
+        ;;
+
+    *)
+       echo "Usage: $0 {start|stop|restart|status}"
+esac
+
+exit 0
